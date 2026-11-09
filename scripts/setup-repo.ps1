@@ -7,6 +7,7 @@
 #   pwsh -c "irm https://raw.githubusercontent.com/BexmediaOrganisation/.github/main/scripts/setup-repo.ps1 | iex"
 
 & {
+  try {
     $ErrorActionPreference = 'Stop'
     $Org = 'BexmediaOrganisation'
     $StandardsRepo = "$Org/.github"
@@ -16,7 +17,13 @@
     function Say($m)  { Write-Host $m }
     function Good($m) { Write-Host "  OK  $m" -ForegroundColor Green }
     function Warn($m) { Write-Host "  !!  $m" -ForegroundColor Yellow }
-    function Fail($m) { Write-Host ""; Write-Host "  XX  $m" -ForegroundColor Red; throw 'Setup stopped.' }
+    $script:Stage = ''
+    function Fail($m) {
+        Write-Host ''
+        Write-Host "  XX  $m" -ForegroundColor Red
+        if ($script:Stage) { Write-Host "      Carry on by hand from Step 2A, part $($script:Stage) of the SOP: $SopLink" -ForegroundColor Red }
+        throw 'Setup stopped.'
+    }
 
     Say ''
     Say 'Bexmedia repo setup'
@@ -63,7 +70,8 @@
     }
     $Full = "$Org/$Name"
 
-    # ---- 3. Create the repo, or use the existing one ----
+    # ---- Step 2A, part A: create the repo, or use the existing one ----
+    $script:Stage = 'A'
     gh repo view $Full --json name *> $null
     $Exists = ($LASTEXITCODE -eq 0)
     if ($Exists) {
@@ -87,7 +95,8 @@
     if ($Kind -ne '1' -and -not $IsPublic) { Warn "$Full is private but you chose public. Visibility was left as it is: talk to Tom." }
     if ($Branch -ne 'main') { Warn "The main branch is called '$Branch', not 'main'. Talk to Tom about renaming it." }
 
-    # ---- 4. Repo settings (SOP Step 3) ----
+    # ---- Step 2A, part B: repo settings ----
+    $script:Stage = 'B'
     gh api -X PATCH "repos/$Full" -F allow_merge_commit=true -F allow_squash_merge=false -F allow_rebase_merge=false -F delete_branch_on_merge=true -f merge_commit_title=PR_TITLE -f merge_commit_message=BLANK --silent
     if ($LASTEXITCODE -ne 0) { Fail 'Could not change the repo settings. You may need admin rights on this repo.' }
     Good 'Merge commits only, using the PR title, and branches delete themselves after merging'
@@ -99,10 +108,11 @@
         gh api -X PUT "repos/$Full/branches/$Branch/protection" --input $Rule --silent
         $Locked = ($LASTEXITCODE -eq 0)
         Remove-Item $Rule -ErrorAction SilentlyContinue
-        if ($Locked) { Good "$Branch is locked: every change needs a pull request" } else { Warn "Could not lock $Branch. Lock it by hand: Settings > Branches." }
+        if ($Locked) { Good "$Branch is locked: every change needs a pull request" } else { Warn "Could not lock $Branch. Lock it by hand: Step 2A, part B of the SOP." }
     }
 
-    # ---- 5. Standard files (SOP Step 4) ----
+    # ---- Step 2A, part C: standard files ----
+    $script:Stage = 'C'
     $UsesFiles = ($Kind -ne '2')
     $UsesWorkflows = ($Kind -eq '1')
     if ($Kind -eq '3') { Warn 'Public repo: no workflows added, so pull requests from strangers can never run on our computers.' }
@@ -191,7 +201,8 @@
         }
     }
 
-    # ---- 6. Release app access (SOP Step 5) ----
+    # ---- Step 2A, part D: release app ID and key ----
+    $script:Stage = 'D'
     if ($UsesWorkflows) {
         $RepoNumber = gh api "repos/$Full" --jq .id
         $SecretOk = $true
@@ -200,12 +211,13 @@
         gh api -X PUT "orgs/$Org/actions/variables/RELEASE_BOT_APP_ID/repositories/$RepoNumber" --silent 2>$null
         if ($LASTEXITCODE -ne 0) { $SecretOk = $false }
         if ($SecretOk) { Good 'The repo can use the release app''s ID and key' }
-        else { Warn 'Could not give the repo the release app''s ID and key. An org owner needs to do this (Versioning and releases SOP, Step 1A).' }
+        else { Warn 'Could not give the repo the release app''s ID and key. An org owner needs to do Step 2A, part D of the SOP: ask Tom.' }
     }
 
     # ---- Done ----
+    $script:Stage = ''
     Say ''
-    Say 'Nearly done. One thing GitHub only lets you do on its website:'
+    Say 'Nearly done. Step 3 of the SOP is the one thing GitHub only lets you do on its website:'
     if ($Kind -ne '3') {
         Say "  Add $Name to Bexmedia Release Bot: $AppLink"
         Say '  (Configure > Repository access > add the repo, and its -Updates repo if it has one.)'
@@ -216,4 +228,12 @@
     Say "Repo: https://github.com/$Full"
     Say 'From now on, every change follows the Commits and pull requests SOP.'
     Say ''
+  }
+  catch {
+    if ($_.Exception.Message -ne 'Setup stopped.') {
+        Write-Host ''
+        Write-Host "  XX  Something went wrong: $($_.Exception.Message)" -ForegroundColor Red
+        if ($script:Stage) { Write-Host "      Carry on by hand from Step 2A, part $($script:Stage) of the SOP: https://bexmediastudio.monday.com/docs/18439133662" -ForegroundColor Red }
+    }
+  }
 }
