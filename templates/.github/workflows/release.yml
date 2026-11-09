@@ -1,0 +1,46 @@
+# Release: release-please keeps a release PR ready. Merging it tags vX.Y.Z and runs the build.
+# Rules: Versioning and releases SOP. Runners: GitHub self-hosted runners SOP.
+name: Release
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  release-please:
+    runs-on: [self-hosted, macOS, ARM64]
+    outputs:
+      release_created: ${{ steps.release.outputs.release_created }}
+      tag_name: ${{ steps.release.outputs.tag_name }}
+    steps:
+      - name: Get a key from Bexmedia Release Bot
+        id: app-token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ vars.RELEASE_BOT_APP_ID }}
+          private-key: ${{ secrets.RELEASE_BOT_PRIVATE_KEY }}
+
+      - name: Update the release PR, or release if it was just merged
+        id: release
+        uses: googleapis/release-please-action@v4
+        with:
+          token: ${{ steps.app-token.outputs.token }}
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
+
+  # Apps people download: replace this job with the repo's build steps.
+  # Use the runs-on line for the right computer (GitHub self-hosted runners SOP).
+  # To publish to the -Updates repo, get the key with `owner` and `repositories` set to include it.
+  # Docker apps on the Mac mini: delete this job and update the Mac mini by following the README.
+  build:
+    needs: release-please
+    if: ${{ needs.release-please.outputs.release_created == 'true' }}
+    runs-on: [self-hosted, macOS, ARM64]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build
+        run: echo "Add this repo's build steps for ${{ needs.release-please.outputs.tag_name }}"

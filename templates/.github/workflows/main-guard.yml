@@ -1,0 +1,28 @@
+# Main guard: our GitHub plan can't lock main on private repos, so this flags
+# any change that reached main without a pull request. Rules: Commits and pull requests SOP.
+name: Main guard
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  check:
+    runs-on: [self-hosted, macOS, ARM64]
+    steps:
+      - name: Check this change came through a pull request
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { data } = await github.rest.repos.listPullRequestsAssociatedWithCommit({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              commit_sha: context.sha,
+            });
+            if (data.length === 0) {
+              core.setFailed('This change was pushed straight to main without a pull request. Every change should go through a pull request: see the Commits and pull requests SOP.');
+            }

@@ -1,0 +1,39 @@
+# Bexmedia standard .gitignore: covers the languages we use.
+
+# Secrets: never commit these
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Computers
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editors
+.vscode/
+.idea/
+*.swp
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+
+# Node and TypeScript
+node_modules/
+dist/
+build/
+.next/
+npm-debug.log*
+
+# Rust
+target/
+
+# Logs
+*.log
