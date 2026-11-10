@@ -14,7 +14,7 @@
     $SopLink = 'https://bexmediastudio.monday.com/docs/18439133662'
     $AppLink = "https://github.com/organizations/$Org/settings/installations"
     $LastPassNote = 'Bexmedia Release Bot'
-    $ReleaseBotAppId = ''   # fill in once Bexmedia Release Bot exists; until then the script asks
+    $ReleaseBotAppId = '5694548'   # Bexmedia Release Bot's App ID (not secret)
 
     function Say($m)  { Write-Host $m }
     function Good($m) { Write-Host "  OK  $m" -ForegroundColor Green }
