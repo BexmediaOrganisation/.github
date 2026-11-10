@@ -15,10 +15,29 @@ The SOPs are the single source of truth. This repo holds no rules of its own, on
 
 The SOPs live on Bexmedia's monday.com, so you need a Bexmedia login to read them.
 
+## Set up a repo in one go
+
+The setup script does the Starting a new repo SOP for you, on a new repo or an existing one. It asks for the repo's name and type, then sets everything up. Existing repos get a pull request to check, so nothing changes without you seeing it.
+
+**Windows** (open PowerShell and paste):
+
+```powershell
+irm https://raw.githubusercontent.com/BexmediaOrganisation/.github/main/scripts/setup-repo.ps1 | iex
+```
+
+**Mac** (needs PowerShell once: `brew install powershell`):
+
+```bash
+pwsh -c "irm https://raw.githubusercontent.com/BexmediaOrganisation/.github/main/scripts/setup-repo.ps1 | iex"
+```
+
+You need Git and the GitHub CLI (`winget install GitHub.cli` or `brew install gh`). The script tells you if either is missing and logs you in to GitHub if needed.
+
 ## What's in here
 
 - `CLAUDE.md` and `AGENTS.md`: the instructions AI coding tools read.
 - `templates/`: the standard files copied into every new repo (see Starting a new repo, Step 4).
+- `scripts/setup-repo.ps1`: the setup script above.
 - `CONTRIBUTING.md`, `pull_request_template.md` and `ISSUE_TEMPLATE/`: defaults GitHub shows in every org repo that doesn't have its own.
 
 ## Keep this repo public and clean
