@@ -6,6 +6,7 @@ You are working in a BexmediaOrganisation repo. Bexmedia's SOPs on monday.com ar
 
 | When you are… | Read |
 |---|---|
+| Taking an idea all the way to a release (the usual order of work) | From idea to release: https://bexmediastudio.monday.com/docs/18439308736 |
 | Starting a new repo | Starting a new repo: https://bexmediastudio.monday.com/docs/18439133662 |
 | Creating a branch, committing, opening or merging a pull request | Commits and pull requests: https://bexmediastudio.monday.com/docs/18438793528 |
 | Releasing a version, tagging, changing version numbers or changelogs | Versioning and releases: https://bexmediastudio.monday.com/docs/18438794583 |
