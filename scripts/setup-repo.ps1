@@ -13,6 +13,8 @@
     $StandardsRepo = "$Org/.github"
     $SopLink = 'https://bexmediastudio.monday.com/docs/18439133662'
     $AppLink = "https://github.com/organizations/$Org/settings/installations"
+    $LastPassNote = 'Bexmedia Release Bot'
+    $ReleaseBotAppId = ''   # fill in once Bexmedia Release Bot exists; until then the script asks
 
     function Say($m)  { Write-Host $m }
     function Good($m) { Write-Host "  OK  $m" -ForegroundColor Green }
@@ -51,6 +53,7 @@
     Say '        Everything else is a descriptive PascalCase name, e.g. DarkhorseProjectArchive.'
     $Name = (Read-Host 'Repo name').Trim()
     if (-not $Name) { Fail 'No repo name given.' }
+    if ($Name -eq '.github') { Fail 'This script is not for the .github standards repo. Change .github by hand, through a pull request.' }
 
     Say ''
     Say 'What kind of repo is it?'
@@ -204,14 +207,30 @@
     # ---- Step 2A, part D: release app ID and key ----
     $script:Stage = 'D'
     if ($UsesWorkflows) {
-        $RepoNumber = gh api "repos/$Full" --jq .id
-        $SecretOk = $true
-        gh api -X PUT "orgs/$Org/actions/secrets/RELEASE_BOT_PRIVATE_KEY/repositories/$RepoNumber" --silent 2>$null
-        if ($LASTEXITCODE -ne 0) { $SecretOk = $false }
-        gh api -X PUT "orgs/$Org/actions/variables/RELEASE_BOT_APP_ID/repositories/$RepoNumber" --silent 2>$null
-        if ($LASTEXITCODE -ne 0) { $SecretOk = $false }
-        if ($SecretOk) { Good 'The repo can use the release app''s ID and key' }
-        else { Warn 'Could not give the repo the release app''s ID and key. An org owner needs to do Step 2A, part D of the SOP: ask Tom.' }
+        Say ''
+        Say "Last part: give the repo Bexmedia Release Bot's key. It's in LastPass, in the secure note '$LastPassNote'."
+        Say 'Only people with access to that note can do this. Press Enter without copying anything to skip it.'
+        $Ready = Read-Host 'Copy the private key from LastPass (all of it, including the BEGIN and END lines), then press Enter'
+        $Key = ''
+        try { $Key = (Get-Clipboard -Raw) } catch { $Key = '' }
+        if ($Key -and $Key.Trim() -match '^-----BEGIN [A-Z ]*PRIVATE KEY-----' -and $Key.Trim() -match '-----END [A-Z ]*PRIVATE KEY-----$') {
+            $Key.Trim() | gh secret set RELEASE_BOT_PRIVATE_KEY --repo $Full
+            $KeyOk = ($LASTEXITCODE -eq 0)
+            try { Set-Clipboard -Value ' ' } catch { }
+            if (-not $KeyOk) { Fail 'Could not save the key into the repo. You may need admin rights on this repo.' }
+            Good 'Key saved into the repo, and your clipboard has been cleared'
+
+            $AppId = $ReleaseBotAppId
+            if (-not $AppId) { $AppId = (Read-Host "Now the App ID (a number, in the same LastPass note)").Trim() }
+            if ($AppId -notmatch '^\d+$') { Fail 'The App ID should be a number.' }
+            gh variable set RELEASE_BOT_APP_ID --repo $Full --body $AppId
+            if ($LASTEXITCODE -ne 0) { Fail 'Could not save the App ID into the repo.' }
+            Good 'App ID saved into the repo'
+        }
+        else {
+            try { if ($Key) { Set-Clipboard -Value ' ' } } catch { }
+            Warn "Skipped: no private key on the clipboard. Releases won't work until someone with the LastPass note does Step 2A, part D."
+        }
     }
 
     # ---- Done ----
