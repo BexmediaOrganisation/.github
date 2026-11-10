@@ -38,6 +38,7 @@
     function Good($m) { Write-Host "  OK  $m" -ForegroundColor Green }
     function Warn($m) { Write-Host "  !!  $m" -ForegroundColor Yellow }
     $script:Stage = ''
+    $script:NoVersions = $false
     function Fail($m) {
         Write-Host ''
         Write-Host "  XX  $m" -ForegroundColor Red
@@ -169,6 +170,8 @@
                         if ($LastTag -and $LastTag -match '^[vV]?(\d+\.\d+\.\d+)$') {
                             $Text = $Text -replace '0\.0\.0', $Matches[1]
                             Good "Releases will carry on from $LastTag"
+                        } else {
+                            $script:NoVersions = $true
                         }
                     }
                     Write-Text $Dest $Text
@@ -231,6 +234,19 @@
         }
     }
 
+    # Existing repos: point out anything the SOPs need tidying.
+    if ($Exists -and $UsesWorkflows) {
+        $Open = gh pr list --repo $Full --state open --json number,title | ConvertFrom-Json
+        $Bad = @($Open | Where-Object { $_.title -notmatch '^(feat|fix|docs|chore|ci|refactor|test)(\([^)]+\))?!?: ' })
+        if ($Bad.Count -gt 0) {
+            Warn 'These open pull requests need their titles changing to the type: what changed format before merging, or they will not count towards a release:'
+            foreach ($P in $Bad) { Say "        #$($P.number)  $($P.title)" }
+        }
+        if ($script:NoVersions) {
+            Warn 'This repo has no versions yet. To start at 1.0.0, see "Starting versions on an existing repo" in the Versioning and releases SOP.'
+        }
+    }
+
     # ---- Step 2A, part D: release app ID and key ----
     $script:Stage = 'D'
     if ($UsesWorkflows) {
@@ -277,7 +293,7 @@
     Say ''
     Say 'Nearly done. Step 3 of the SOP is the one thing GitHub only lets you do on its website:'
     if ($Kind -ne '3') {
-        Say "  Add $Name to Bexmedia Release Bot: $AppLink"
+        Say "  If it isn't there already, add $Name to Bexmedia Release Bot: $AppLink"
         Say '  (Configure > Repository access > add the repo, and its -Updates repo if it has one.)'
     } else {
         Say '  Nothing else needed for an open-source repo.'
