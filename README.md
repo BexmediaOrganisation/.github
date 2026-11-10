@@ -11,6 +11,7 @@ The SOPs are the single source of truth. This repo holds no rules of its own, on
 | Starting a new repo | [Starting a new repo](https://bexmediastudio.monday.com/docs/18439133662) |
 | Changing code: branches, commits, pull requests | [Commits and pull requests](https://bexmediastudio.monday.com/docs/18438793528) |
 | Releasing a new version | [Versioning and releases](https://bexmediastudio.monday.com/docs/18438794583) |
+| Building with AI in Claude Code | [Building with AI](https://bexmediastudio.monday.com/docs/18439287632) |
 | Setting up where a build runs | [GitHub self-hosted runners](https://bexmediastudio.monday.com/docs/18438628008) |
 
 The SOPs live on Bexmedia's monday.com, so you need a Bexmedia login to read them.
