@@ -27,6 +27,13 @@
     function Read-Text($Path) { [IO.File]::ReadAllText($Path) }
     function Write-Text($Path, $Text) { [IO.File]::WriteAllText($Path, $Text, (New-Object Text.UTF8Encoding $false)) }
 
+    # Turn hidden (secure) input back into text, on every PowerShell version.
+    function Plain($Secure) {
+        if (-not $Secure) { return '' }
+        $Ptr = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($Secure)
+        try { [Runtime.InteropServices.Marshal]::PtrToStringBSTR($Ptr) } finally { [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($Ptr) }
+    }
+
     function Say($m)  { Write-Host $m }
     function Good($m) { Write-Host "  OK  $m" -ForegroundColor Green }
     function Warn($m) { Write-Host "  !!  $m" -ForegroundColor Yellow }
@@ -201,13 +208,22 @@
             elseif (-not $Exists) {
                 git -C $Repo commit --quiet -m 'chore: set up repo'
                 git -C $Repo push --quiet origin $Branch
+                if ($LASTEXITCODE -ne 0) { Fail "Could not push the standard files to $Branch." }
                 Good "Standard files committed to $Branch (the one time that's allowed)"
             }
             else {
                 git -C $Repo commit --quiet -m 'chore: add bexmedia standards'
-                git -C $Repo push --quiet -u origin $FixBranch
-                $Pr = gh pr create --repo $Full --base $Branch --head $FixBranch --title 'chore: add bexmedia standards' --body 'Adds the Bexmedia standard files, following the Starting a new repo SOP. Check nothing important was changed, then merge.'
-                Good "Opened a pull request with the standard files: $Pr"
+                # The branch belongs to this script, so if an earlier run left one, replace it.
+                git -C $Repo push --quiet --force -u origin $FixBranch
+                if ($LASTEXITCODE -ne 0) { Fail "Could not push the branch $FixBranch." }
+                $Pr = gh pr list --repo $Full --head $FixBranch --state open --json url --jq '.[0].url'
+                if ($Pr) {
+                    Good "Updated the pull request that was already open: $Pr"
+                } else {
+                    $Pr = gh pr create --repo $Full --base $Branch --head $FixBranch --title 'chore: add bexmedia standards' --body 'Adds the Bexmedia standard files, following the Starting a new repo SOP. Check nothing important was changed, then merge.'
+                    if ($LASTEXITCODE -ne 0 -or -not $Pr) { Fail 'Pushed the branch, but could not open the pull request.' }
+                    Good "Opened a pull request with the standard files: $Pr"
+                }
             }
         }
         finally {
@@ -220,8 +236,20 @@
     if ($UsesWorkflows) {
         Say ''
         Say "Last part: give the repo Bexmedia Release Bot's key. It's in LastPass, in the secure note '$LastPassNote'."
-        Say 'Only people with access to that note can do this. Press Enter without copying anything to skip it.'
-        $Ready = Read-Host 'Copy the private key from LastPass (all of it, including the BEGIN and END lines), then press Enter'
+        Say 'Only people with access to that note can do this.'
+        Say ''
+        Say '  1  In LastPass, copy the whole private key (including the BEGIN and END lines).'
+        Say '  2  Come back to this window and just press Enter. DON''T paste it here.'
+        Say '     (To skip this part, press Enter without copying anything.)'
+        Say ''
+        # Hidden input, so if someone pastes the key anyway, none of it shows on screen.
+        $First = Plain (Read-Host 'Press Enter when the key is copied' -AsSecureString)
+        if ($First -match 'BEGIN') {
+            Warn 'Looks like the key was pasted. Catching the rest of it, so none of it shows on screen or runs as commands...'
+            $Line = $First
+            while ($Line -and $Line -notmatch 'END [A-Z ]*PRIVATE KEY') { $Line = Plain (Read-Host -AsSecureString) }
+            Good 'Caught it. Nothing was shown or saved. The copy on your clipboard will be used.'
+        }
         $Key = ''
         try { $Key = (Get-Clipboard -Raw) } catch { $Key = '' }
         if ($Key -and $Key.Trim() -match '^-----BEGIN [A-Z ]*PRIVATE KEY-----' -and $Key.Trim() -match '-----END [A-Z ]*PRIVATE KEY-----$') {
