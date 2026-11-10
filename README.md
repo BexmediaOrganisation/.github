@@ -25,19 +25,19 @@ The setup script does the Starting a new repo SOP for you, on a new repo or an e
 irm https://raw.githubusercontent.com/BexmediaOrganisation/.github/main/scripts/setup-repo.ps1 | iex
 ```
 
-**Mac** (needs PowerShell once: `brew install powershell`):
+**Mac** (open Terminal and paste):
 
 ```bash
-pwsh -c "irm https://raw.githubusercontent.com/BexmediaOrganisation/.github/main/scripts/setup-repo.ps1 | iex"
+curl -fsSL https://raw.githubusercontent.com/BexmediaOrganisation/.github/main/scripts/setup-repo.sh | bash
 ```
 
-You need Git and the GitHub CLI (`winget install GitHub.cli` or `brew install gh`). The script tells you if either is missing and logs you in to GitHub if needed.
+On Windows you need Git and the GitHub CLI (`winget install GitHub.cli`); the script tells you if either is missing. On a Mac, the launcher offers to install PowerShell and the GitHub CLI for you with Homebrew, then runs the same setup script. Either way, it logs you in to GitHub if needed.
 
 ## What's in here
 
 - `CLAUDE.md` and `AGENTS.md`: the instructions AI coding tools read.
 - `templates/`: the standard files copied into every new repo (see Starting a new repo, Step 4).
-- `scripts/setup-repo.ps1`: the setup script above.
+- `scripts/setup-repo.ps1`: the setup script above. `scripts/setup-repo.sh` is the Mac launcher for it.
 - `CONTRIBUTING.md`, `pull_request_template.md` and `ISSUE_TEMPLATE/`: defaults GitHub shows in every org repo that doesn't have its own.
 
 ## Keep this repo public and clean

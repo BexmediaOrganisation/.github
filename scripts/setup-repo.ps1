@@ -3,8 +3,8 @@
 # https://bexmediastudio.monday.com/docs/18439133662
 #
 # Windows (PowerShell):  irm https://raw.githubusercontent.com/BexmediaOrganisation/.github/main/scripts/setup-repo.ps1 | iex
-# Mac (needs PowerShell: brew install powershell):
-#   pwsh -c "irm https://raw.githubusercontent.com/BexmediaOrganisation/.github/main/scripts/setup-repo.ps1 | iex"
+# Mac (Terminal): curl -fsSL https://raw.githubusercontent.com/BexmediaOrganisation/.github/main/scripts/setup-repo.sh | bash
+#   (setup-repo.sh installs PowerShell and the GitHub CLI if needed, then runs this script)
 
 & {
   try {
