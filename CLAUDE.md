@@ -6,9 +6,12 @@ You are working in a BexmediaOrganisation repo. Bexmedia's SOPs on monday.com ar
 
 | When you are… | Read |
 |---|---|
+| Taking an idea all the way to a release (the usual order of work) | From idea to release: https://bexmediastudio.monday.com/docs/18439308736 |
 | Starting a new repo | Starting a new repo: https://bexmediastudio.monday.com/docs/18439133662 |
 | Creating a branch, committing, opening or merging a pull request | Commits and pull requests: https://bexmediastudio.monday.com/docs/18438793528 |
 | Releasing a version, tagging, changing version numbers or changelogs | Versioning and releases: https://bexmediastudio.monday.com/docs/18438794583 |
+| Building or changing a tool with Claude Code (the skills workflow) | Building with AI: https://bexmediastudio.monday.com/docs/18439287632 |
+| Adding a tool to the Bexmedia App Store, changing its listing or icon, or reporting a problem with a tool | Adding an app to the Bexmedia App Store: https://bexmediastudio.monday.com/docs/18439313835 |
 | Writing or changing a GitHub Actions workflow, or choosing `runs-on` | GitHub self-hosted runners: https://bexmediastudio.monday.com/docs/18438628008 |
 
 ## How to read the SOPs

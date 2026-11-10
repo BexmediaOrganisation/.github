@@ -4,6 +4,10 @@ This repo is the signpost for how Bexmedia builds software. Every repo in the Be
 
 The SOPs are the single source of truth. This repo holds no rules of its own, only links to them and the ready-made files they ask you to use.
 
+## The journey
+
+Most work follows [From idea to release](https://bexmediastudio.monday.com/docs/18439308736): plan, then tickets, then build, then pull request, then merge, then release, then check it's out. It gives the order, and points to the SOP below that explains each step.
+
 ## The SOPs
 
 | When you are… | Follow |
@@ -11,6 +15,8 @@ The SOPs are the single source of truth. This repo holds no rules of its own, on
 | Starting a new repo | [Starting a new repo](https://bexmediastudio.monday.com/docs/18439133662) |
 | Changing code: branches, commits, pull requests | [Commits and pull requests](https://bexmediastudio.monday.com/docs/18438793528) |
 | Releasing a new version | [Versioning and releases](https://bexmediastudio.monday.com/docs/18438794583) |
+| Building with AI in Claude Code | [Building with AI](https://bexmediastudio.monday.com/docs/18439287632) |
+| Listing a tool in the App Store, or reporting a problem with one | [Adding an app to the Bexmedia App Store](https://bexmediastudio.monday.com/docs/18439313835) |
 | Setting up where a build runs | [GitHub self-hosted runners](https://bexmediastudio.monday.com/docs/18438628008) |
 
 The SOPs live on Bexmedia's monday.com, so you need a Bexmedia login to read them.
