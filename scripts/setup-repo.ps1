@@ -3,8 +3,8 @@
 # https://bexmediastudio.monday.com/docs/18439133662
 #
 # Windows (PowerShell):  irm https://raw.githubusercontent.com/BexmediaOrganisation/.github/main/scripts/setup-repo.ps1 | iex
-# Mac (needs PowerShell: brew install powershell):
-#   pwsh -c "irm https://raw.githubusercontent.com/BexmediaOrganisation/.github/main/scripts/setup-repo.ps1 | iex"
+# Mac (Terminal): curl -fsSL https://raw.githubusercontent.com/BexmediaOrganisation/.github/main/scripts/setup-repo.sh | bash
+#   (setup-repo.sh installs PowerShell and the GitHub CLI if needed, then runs this script)
 
 & {
   try {
@@ -15,6 +15,17 @@
     $AppLink = "https://github.com/organizations/$Org/settings/installations"
     $LastPassNote = 'Bexmedia Release Bot'
     $ReleaseBotAppId = '5694548'   # Bexmedia Release Bot's App ID (not secret)
+
+    # Run a command whose error output we don't care about. Windows PowerShell 5.1
+    # treats any error output from git or gh as fatal, so switch that off just here.
+    function Quietly([scriptblock]$Cmd) {
+        $Old = $ErrorActionPreference
+        $ErrorActionPreference = 'Continue'
+        try { & $Cmd 2>&1 | Out-Null } catch { } finally { $ErrorActionPreference = $Old }
+    }
+    # Read and write text as UTF-8 without a BOM, the same on every PowerShell version.
+    function Read-Text($Path) { [IO.File]::ReadAllText($Path) }
+    function Write-Text($Path, $Text) { [IO.File]::WriteAllText($Path, $Text, (New-Object Text.UTF8Encoding $false)) }
 
     function Say($m)  { Write-Host $m }
     function Good($m) { Write-Host "  OK  $m" -ForegroundColor Green }
@@ -39,7 +50,7 @@
     if (-not (Get-Command gh -ErrorAction SilentlyContinue)) {
         Fail 'The GitHub CLI is not installed. Windows: winget install GitHub.cli   Mac: brew install gh   Then run this again.'
     }
-    gh auth status *> $null
+    Quietly { gh auth status }
     if ($LASTEXITCODE -ne 0) {
         Say 'You need to log in to GitHub first. A browser window will open.'
         gh auth login --web --scopes 'repo,admin:org'
@@ -75,7 +86,7 @@
 
     # ---- Step 2A, part A: create the repo, or use the existing one ----
     $script:Stage = 'A'
-    gh repo view $Full --json name *> $null
+    Quietly { gh repo view $Full --json name }
     $Exists = ($LASTEXITCODE -eq 0)
     if ($Exists) {
         Good "$Full already exists, so it will be brought up to standard"
@@ -144,35 +155,36 @@
                 if (-not (Test-Path $DestDir)) { New-Item -ItemType Directory -Path $DestDir -Force | Out-Null }
 
                 if (-not (Test-Path $Dest)) {
-                    $Text = Get-Content -Path $F.FullName -Raw
+                    $Text = Read-Text $F.FullName
                     if ($RelSlash -eq 'CLAUDE.md') { $Text = $Text -replace '\[Repo name\]', $Name }
                     if ($RelSlash -eq '.release-please-manifest.json' -and $Exists) {
-                        $LastTag = git -C $Repo describe --tags --abbrev=0 2>$null
-                        if ($LASTEXITCODE -eq 0 -and $LastTag -match '^[vV]?(\d+\.\d+\.\d+)$') {
+                        $LastTag = git -C $Repo tag --list --sort=-v:refname | Select-Object -First 1
+                        if ($LastTag -and $LastTag -match '^[vV]?(\d+\.\d+\.\d+)$') {
                             $Text = $Text -replace '0\.0\.0', $Matches[1]
                             Good "Releases will carry on from $LastTag"
                         }
                     }
-                    Set-Content -Path $Dest -Value $Text -NoNewline
+                    Write-Text $Dest $Text
                     Good "Added $RelSlash"
                 }
                 elseif ($RelSlash -eq 'CLAUDE.md') {
-                    $Mine = Get-Content -Path $Dest -Raw
+                    $Mine = Read-Text $Dest
                     if ($Mine -notmatch '## Bexmedia standards') {
-                        $Tmpl = Get-Content -Path $F.FullName -Raw
+                        $Tmpl = Read-Text $F.FullName
                         $Section = ($Tmpl -split '(?m)^## About this repo')[0] -replace '(?s)^.*?(?=## Bexmedia standards)', ''
                         $Lines = $Mine -split "`r?`n", 2
                         if ($Lines[0] -match '^# ') { $New = $Lines[0] + "`n`n" + $Section.Trim() + "`n`n" + $Lines[1] }
                         else { $New = $Section.Trim() + "`n`n" + $Mine }
-                        Set-Content -Path $Dest -Value $New -NoNewline
+                        Write-Text $Dest $New
                         Good 'Added the Bexmedia standards section to the existing CLAUDE.md (your notes are kept)'
                     }
                 }
                 elseif ($RelSlash -eq '.gitignore') {
-                    $Have = Get-Content -Path $Dest
-                    $Missing = Get-Content -Path $F.FullName | Where-Object { $_ -and $_ -notmatch '^#' -and $Have -notcontains $_ }
+                    $MineText = Read-Text $Dest
+                    $Have = $MineText -split "`r?`n"
+                    $Missing = (Read-Text $F.FullName) -split "`r?`n" | Where-Object { $_ -and $_ -notmatch '^#' -and $Have -notcontains $_ }
                     if ($Missing) {
-                        Add-Content -Path $Dest -Value (@('', '# Added by Bexmedia repo setup') + $Missing)
+                        Write-Text $Dest ($MineText.TrimEnd() + "`n`n# Added by Bexmedia repo setup`n" + ($Missing -join "`n") + "`n")
                         Good 'Added missing lines to the existing .gitignore'
                     }
                 }
@@ -199,7 +211,6 @@
             }
         }
         finally {
-            Set-Location ([IO.Path]::GetTempPath())
             Remove-Item -Recurse -Force $Work -ErrorAction SilentlyContinue
         }
     }
