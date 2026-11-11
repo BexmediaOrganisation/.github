@@ -12,6 +12,7 @@ You are working in a BexmediaOrganisation repo. Bexmedia's SOPs on monday.com ar
 | Releasing a version, tagging, changing version numbers or changelogs | Versioning and releases: https://bexmediastudio.monday.com/docs/18438794583 |
 | Building or changing a tool with Claude Code (the skills workflow) | Building with AI: https://bexmediastudio.monday.com/docs/18439287632 |
 | Adding a tool to the Bexmedia App Store, changing its listing or icon, or reporting a problem with a tool | Adding an app to the Bexmedia App Store: https://bexmediastudio.monday.com/docs/18439313835 |
+| Writing or changing an SOP, or building a skill or tool from one | The SOP lifecycle: https://bexmediastudio.monday.com/docs/18439474792 |
 | Writing or changing a GitHub Actions workflow, or choosing `runs-on` | GitHub self-hosted runners: https://bexmediastudio.monday.com/docs/18438628008 |
 
 ## How to read the SOPs
