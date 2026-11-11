@@ -17,6 +17,7 @@ Most work follows [From idea to release](https://bexmediastudio.monday.com/docs/
 | Releasing a new version | [Versioning and releases](https://bexmediastudio.monday.com/docs/18438794583) |
 | Building with AI in Claude Code | [Building with AI](https://bexmediastudio.monday.com/docs/18439287632) |
 | Listing a tool in the App Store, or reporting a problem with one | [Adding an app to the Bexmedia App Store](https://bexmediastudio.monday.com/docs/18439313835) |
+| Writing an SOP, or building a skill or tool from one | [The SOP lifecycle](https://bexmediastudio.monday.com/docs/18439474792) |
 | Setting up where a build runs | [GitHub self-hosted runners](https://bexmediastudio.monday.com/docs/18438628008) |
 
 The SOPs live on Bexmedia's monday.com, so you need a Bexmedia login to read them.
