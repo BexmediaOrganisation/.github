@@ -1,0 +1,136 @@
+# Notify: tells Bexmedia Notify that a release is out, so it can email the team.
+# A reusable workflow, called as the LAST job of a repo's Release workflow, after the
+# build or live deploy has finished and only when a release was created.
+# Rules: Versioning and releases SOP. Runners: GitHub self-hosted runners SOP.
+#
+# It reads each pull request in the release for its "What changes for the team" section
+# (the Team Notes) and sends the repo, version and notes to Notify on localhost.
+# Re-running sends the same version tag, and Notify only ever emails a version once.
+#
+# Calling it (a job in the repo's own Release workflow):
+#
+#   notify:
+#     needs: [release-please]              # plus build or deploy-live, if the repo has one
+#     if: ${{ needs.release-please.outputs.release_created == 'true' }}
+#     permissions:
+#       contents: read
+#       pull-requests: read
+#     uses: BexmediaOrganisation/.github/.github/workflows/notify-release.yml@main
+#     with:
+#       tag: ${{ needs.release-please.outputs.tag_name }}
+#       port: ${{ vars.NOTIFY_PORT }}      # repo variable: Notify's live port on the Mac mini
+#       app-id: ${{ vars.RELEASE_BOT_APP_ID }}
+#     secrets:
+#       RELEASE_BOT_PRIVATE_KEY: ${{ secrets.RELEASE_BOT_PRIVATE_KEY }}
+#
+# The port is passed in by the calling repo and is never written in this public repo.
+name: Notify release
+
+on:
+  workflow_call:
+    inputs:
+      tag:
+        description: The release tag, for example v1.5.0. The same tag on every run.
+        type: string
+        required: true
+      port:
+        description: Notify's port on the Mac mini (localhost only).
+        type: string
+        required: true
+      app-id:
+        description: Bexmedia Release Bot App ID. Leave empty to read with the repo's own token.
+        type: string
+        required: false
+        default: ""
+    secrets:
+      RELEASE_BOT_PRIVATE_KEY:
+        description: Bexmedia Release Bot private key. Leave out to read with the repo's own token.
+        required: false
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  notify:
+    runs-on: [self-hosted, macOS, ARM64]
+    timeout-minutes: 10
+    env:
+      HAS_KEY: ${{ secrets.RELEASE_BOT_PRIVATE_KEY != '' }}
+    concurrency:
+      group: notify-${{ github.repository }}-${{ inputs.tag }}
+      cancel-in-progress: false
+    steps:
+      - name: Get a key from Bexmedia Release Bot
+        id: app-token
+        if: ${{ inputs.app-id != '' && env.HAS_KEY == 'true' }}
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ inputs.app-id }}
+          private-key: ${{ secrets.RELEASE_BOT_PRIVATE_KEY }}
+
+      - name: Gather the Team Notes and announce the release
+        uses: actions/github-script@v7
+        env:
+          TAG: ${{ inputs.tag }}
+          PORT: ${{ inputs.port }}
+        with:
+          github-token: ${{ steps.app-token.outputs.token || github.token }}
+          script: |
+            const { owner, repo } = context.repo;
+            const tag = process.env.TAG;
+            const port = process.env.PORT;
+            if (!/^v\d+\.\d+\.\d+$/.test(tag)) throw new Error(`Not a release tag: ${tag}`);
+            if (!/^\d{2,5}$/.test(port)) throw new Error("port must be a number");
+
+            // The release's commits: everything between the previous version tag and this one.
+            const parse = (t) => (/^v(\d+)\.(\d+)\.(\d+)$/.exec(t) || []).slice(1).map(Number);
+            const newer = (a, b) => { for (let i = 0; i < 3; i++) if (a[i] !== b[i]) return a[i] - b[i]; return 0; };
+            const tags = await github.paginate(github.rest.repos.listTags, { owner, repo, per_page: 100 });
+            const mine = parse(tag);
+            const previous = tags.map((t) => t.name).filter((n) => parse(n).length === 3 && newer(parse(n), mine) < 0)
+              .sort((a, b) => newer(parse(b), parse(a)))[0];
+            let commits;
+            if (previous) {
+              commits = await github.paginate(github.rest.repos.compareCommitsWithBasehead,
+                { owner, repo, basehead: `${previous}...${tag}`, per_page: 100 },
+                (res) => res.data.commits);
+            } else {
+              // First release: only the most recent 100 commits.
+              commits = (await github.rest.repos.listCommits({ owner, repo, sha: tag, per_page: 100 })).data;
+            }
+
+            // The pull requests those commits came from, once each, leaving out release PRs.
+            const prs = new Map();
+            for (const c of commits) {
+              const { data } = await github.rest.repos.listPullRequestsAssociatedWithCommit({ owner, repo, commit_sha: c.sha });
+              for (const pr of data) {
+                if (!pr.merged_at || prs.has(pr.number)) continue;
+                if (pr.head.ref.startsWith("release-please--") || /^chore(\(.+\))?: release/.test(pr.title)) continue;
+                prs.set(pr.number, pr);
+              }
+            }
+
+            // The "What changes for the team" section of each, as plain lines.
+            const notes = [];
+            for (const pr of [...prs.values()].sort((a, b) => a.number - b.number)) {
+              const body = (pr.body || "").replace(/\r/g, "").replace(/<!--[\s\S]*?-->/g, "");
+              const m = /^#{2,3}\s*What changes for the team\s*$([\s\S]*?)(?=^#{1,3}\s|(?![\s\S]))/im.exec(body);
+              if (!m) continue;
+              for (const raw of m[1].split("\n")) {
+                const line = raw.replace(/^\s*(?:[-*+]|\d+\.)\s+/, "").trim();
+                if (!line || /^(none|n\/a|nothing|no)\.?$/i.test(line) || /^(closes|fixes|resolves|refs)\b/i.test(line)) continue;
+                if (!notes.includes(line)) notes.push(line);
+              }
+            }
+            core.info(`${prs.size} pull request(s), ${notes.length} Team Note(s)`);
+
+            const res = await fetch(`http://localhost:${port}/announce`, {
+              method: "POST",
+              headers: { "content-type": "application/json" },
+              body: JSON.stringify({ repo: `https://github.com/${owner}/${repo}`, version: tag, notes }),
+              signal: AbortSignal.timeout(60000),
+            });
+            const text = await res.text();
+            core.info(`Notify answered ${res.status}: ${text}`);
+            if (!res.ok) throw new Error(`Notify answered ${res.status}`);
