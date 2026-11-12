@@ -133,7 +133,8 @@ jobs:
   # variables > Actions > Variables). Ask Tom for the value: it is not kept here.
   notify:
     needs: [release-please]
-    if: ${{ needs.release-please.outputs.release_created == 'true' }}
+    # Skipped until the repo has the NOTIFY_PORT variable, so a repo without it still releases cleanly.
+    if: ${{ needs.release-please.outputs.release_created == 'true' && vars.NOTIFY_PORT != '' }}
     permissions:
       contents: read
       pull-requests: read
