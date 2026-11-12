@@ -12,7 +12,6 @@
     $Org = 'BexmediaOrganisation'
     $StandardsRepo = "$Org/.github"
     $SopLink = 'https://bexmediastudio.monday.com/docs/18439133662'
-    $AppLink = "https://github.com/organizations/$Org/settings/installations"
     $LastPassNote = 'Bexmedia Release Bot'
 
     # Run a command whose error output we don't care about. Windows PowerShell 5.1
@@ -285,13 +284,8 @@
     # ---- Done ----
     $script:Stage = ''
     Say ''
-    Say 'Nearly done. Step 3 of the SOP is the one thing GitHub only lets you do on its website:'
-    if ($Kind -ne '3') {
-        Say "  If it isn't there already, add $Name to Bexmedia Release Bot: $AppLink"
-        Say '  (Configure > Repository access > add the repo, and its -Updates repo if it has one.)'
-    } else {
-        Say '  Nothing else needed for an open-source repo.'
-    }
+    Say 'Done. Bexmedia Release Bot is installed on every repo in the org, so there is nothing to add on GitHub.'
+    Say 'Last thing: check it works, in Step 3 of the SOP.'
     Say ''
     Say "Repo: https://github.com/$Full"
     Say 'From now on, every change follows the Commits and pull requests SOP.'
