@@ -124,3 +124,23 @@ jobs:
   #           | while read -r t; do docker image rm "$APP_NAME:$t" || true; done
   #         docker image prune -f
   #         docker builder prune -f --filter until=168h
+
+  # Release Emails: tells Bexmedia Notify a release is out, so it emails the team.
+  # Keep this job LAST. If you switched on the build job or deploy-live above, add its
+  # name to needs, for example needs: [release-please, build] or
+  # needs: [release-please, deploy-live], so the email only goes once it has finished.
+  # The repo also needs the NOTIFY_PORT repo variable (Settings > Secrets and
+  # variables > Actions > Variables). Ask Tom for the value: it is not kept here.
+  notify:
+    needs: [release-please]
+    if: ${{ needs.release-please.outputs.release_created == 'true' }}
+    permissions:
+      contents: read
+      pull-requests: read
+    uses: BexmediaOrganisation/.github/.github/workflows/notify-release.yml@main
+    with:
+      tag: ${{ needs.release-please.outputs.tag_name }}
+      port: ${{ vars.NOTIFY_PORT }}
+      app-id: ${{ vars.RELEASE_BOT_APP_ID }}
+    secrets:
+      RELEASE_BOT_PRIVATE_KEY: ${{ secrets.RELEASE_BOT_PRIVATE_KEY }}
