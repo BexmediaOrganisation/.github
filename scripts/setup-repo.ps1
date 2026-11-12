@@ -118,10 +118,12 @@
     if ($Branch -ne 'main') { Warn "The main branch is called '$Branch', not 'main'. Talk to Tom about renaming it." }
 
     # ---- Step 2A, part B: repo settings ----
+    # Squash merging only: each pull request lands on main as one commit named after its
+    # PR title, with an empty body, so release-please reads only the checked PR titles.
     $script:Stage = 'B'
-    gh api -X PATCH "repos/$Full" -F allow_merge_commit=true -F allow_squash_merge=false -F allow_rebase_merge=false -F delete_branch_on_merge=true -f merge_commit_title=PR_TITLE -f merge_commit_message=BLANK --silent
+    gh api -X PATCH "repos/$Full" -F allow_merge_commit=false -F allow_squash_merge=true -F allow_rebase_merge=false -F delete_branch_on_merge=true -f squash_merge_commit_title=PR_TITLE -f squash_merge_commit_message=BLANK --silent
     if ($LASTEXITCODE -ne 0) { Fail 'Could not change the repo settings. You may need admin rights on this repo.' }
-    Good 'Merge commits only, using the PR title, and branches delete themselves after merging'
+    Good 'Squash merging only, using the PR title, and branches delete themselves after merging'
 
     # Public repos can lock main on our GitHub plan, so lock it.
     if ($IsPublic) {
