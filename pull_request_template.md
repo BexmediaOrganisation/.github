@@ -11,3 +11,6 @@ The title decides the next version number, so pick the type carefully.
 
 
 Closes #
+
+## What changes for the team
+<!-- One plain line per change people using the app will notice, in plain English, with no code words. Leave empty for internal changes: nothing is sent. -->
