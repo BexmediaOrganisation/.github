@@ -4,7 +4,9 @@
 # Rules: Versioning and releases SOP. Runners: GitHub self-hosted runners SOP.
 #
 # It reads each pull request in the release for its "What changes for the team" section
-# (the Team Notes) and sends the repo, version and notes to Notify on localhost.
+# (the Team Notes) and sends the repo, version and notes to Notify. It runs on the
+# Mac mini and reaches Notify through nginx on 127.0.0.1 by its bexmedia.notify name,
+# so no repo needs to know Notify's port.
 # Re-running sends the same version tag, and Notify only ever emails a version once.
 #
 # Calling it (a job in the repo's own Release workflow):
@@ -18,12 +20,8 @@
 #     uses: BexmediaOrganisation/.github/.github/workflows/notify-release.yml@main
 #     with:
 #       tag: ${{ needs.release-please.outputs.tag_name }}
-#       port: ${{ vars.NOTIFY_PORT }}      # repo variable: Notify's live port on the Mac mini
-#       app-id: ${{ vars.RELEASE_BOT_APP_ID }}
 #     secrets:
 #       RELEASE_BOT_PRIVATE_KEY: ${{ secrets.RELEASE_BOT_PRIVATE_KEY }}
-#
-# The port is passed in by the calling repo and is never written in this public repo.
 name: Notify release
 
 on:
@@ -33,12 +31,14 @@ on:
         description: The release tag, for example v1.5.0. The same tag on every run.
         type: string
         required: true
+      # port and app-id stay only so older Release workflows that still pass them keep working.
       port:
-        description: Notify's port on the Mac mini (localhost only).
+        description: Not used any more. Notify is reached through nginx.
         type: string
-        required: true
+        required: false
+        default: ""
       app-id:
-        description: Bexmedia Release Bot App ID. Leave empty to read with the repo's own token.
+        description: Not used any more. The Release Bot App ID is set below.
         type: string
         required: false
         default: ""
@@ -63,25 +63,22 @@ jobs:
     steps:
       - name: Get a key from Bexmedia Release Bot
         id: app-token
-        if: ${{ inputs.app-id != '' && env.HAS_KEY == 'true' }}
+        if: ${{ env.HAS_KEY == 'true' }}
         uses: actions/create-github-app-token@v1
         with:
-          app-id: ${{ inputs.app-id }}
+          app-id: "5694548"   # Bexmedia Release Bot's App ID (not secret)
           private-key: ${{ secrets.RELEASE_BOT_PRIVATE_KEY }}
 
       - name: Gather the Team Notes and announce the release
         uses: actions/github-script@v7
         env:
           TAG: ${{ inputs.tag }}
-          PORT: ${{ inputs.port }}
         with:
           github-token: ${{ steps.app-token.outputs.token || github.token }}
           script: |
             const { owner, repo } = context.repo;
             const tag = process.env.TAG;
-            const port = process.env.PORT;
             if (!/^v\d+\.\d+\.\d+$/.test(tag)) throw new Error(`Not a release tag: ${tag}`);
-            if (!/^\d{2,5}$/.test(port)) throw new Error("port must be a number");
 
             // The release's commits: everything between the previous version tag and this one.
             const parse = (t) => (/^v(\d+)\.(\d+)\.(\d+)$/.exec(t) || []).slice(1).map(Number);
@@ -125,12 +122,30 @@ jobs:
             }
             core.info(`${prs.size} pull request(s), ${notes.length} Team Note(s)`);
 
-            const res = await fetch(`http://localhost:${port}/announce`, {
-              method: "POST",
-              headers: { "content-type": "application/json" },
-              body: JSON.stringify({ repo: `https://github.com/${owner}/${repo}`, version: tag, notes }),
-              signal: AbortSignal.timeout(60000),
+            // Through nginx on the Mac mini, by Notify's name. Uses http rather than fetch,
+            // because fetch won't always send a Host header that differs from the address.
+            const http = require("http");
+            const payload = JSON.stringify({ repo: `https://github.com/${owner}/${repo}`, version: tag, notes });
+            const { status, text } = await new Promise((resolve, reject) => {
+              const req = http.request({
+                host: "127.0.0.1",
+                port: 80,
+                path: "/announce",
+                method: "POST",
+                headers: {
+                  host: "bexmedia.notify",
+                  "content-type": "application/json",
+                  "content-length": Buffer.byteLength(payload),
+                },
+              }, (res) => {
+                let data = "";
+                res.setEncoding("utf8");
+                res.on("data", (chunk) => { data += chunk; });
+                res.on("end", () => resolve({ status: res.statusCode, text: data }));
+              });
+              req.setTimeout(60000, () => req.destroy(new Error("Notify did not answer within 60 seconds")));
+              req.on("error", reject);
+              req.end(payload);
             });
-            const text = await res.text();
-            core.info(`Notify answered ${res.status}: ${text}`);
-            if (!res.ok) throw new Error(`Notify answered ${res.status}`);
+            core.info(`Notify answered ${status}: ${text}`);
+            if (status < 200 || status >= 300) throw new Error(`Notify answered ${status}`);

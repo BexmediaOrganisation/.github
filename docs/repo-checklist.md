@@ -40,7 +40,8 @@ Public repos leave out the workflows and the release-please files.
 
 From [Versioning and releases](https://bexmediastudio.monday.com/docs/18438794583), Step 1.
 
-- [ ] The repo variable `RELEASE_BOT_APP_ID` and the secret `RELEASE_BOT_PRIVATE_KEY` exist. Check only that they are there, never their values.
+- [ ] The secret `RELEASE_BOT_PRIVATE_KEY` exists. Check only that it is there, never its value.
+- [ ] The Release workflow passes no `port` or `app-id` to the notify job and doesn't use `vars.NOTIFY_PORT` or `vars.RELEASE_BOT_APP_ID`: copy the notify and release-please jobs from the current template. Once that's done, the repo variables `NOTIFY_PORT` and `RELEASE_BOT_APP_ID` can be deleted (a person does this).
 - [ ] Web apps only: a dev site and a live site are set up (Step 1B), and the app shows its version number.
 
 ## Matt Pocock's skills
