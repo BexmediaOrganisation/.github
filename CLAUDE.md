@@ -8,6 +8,7 @@ You are working in a BexmediaOrganisation repo. Bexmedia's SOPs on monday.com ar
 |---|---|
 | Taking an idea all the way to a release (the usual order of work) | From idea to release: https://bexmediastudio.monday.com/docs/18439308736 |
 | Starting a new repo | Starting a new repo: https://bexmediastudio.monday.com/docs/18439133662 |
+| Checking an existing repo is up to date with the Bexmedia standards, or bringing it up to date | Bringing an existing repo up to date: https://bexmediastudio.monday.com/docs/18439746339, and the repo checklist: https://github.com/BexmediaOrganisation/.github/blob/main/docs/repo-checklist.md |
 | Creating a branch, committing, opening or merging a pull request | Commits and pull requests: https://bexmediastudio.monday.com/docs/18438793528 |
 | Releasing a version, tagging, changing version numbers or changelogs | Versioning and releases: https://bexmediastudio.monday.com/docs/18438794583 |
 | Building or changing a tool with Claude Code (the skills workflow) | Building with AI: https://bexmediastudio.monday.com/docs/18439287632 |
