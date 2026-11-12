@@ -14,7 +14,6 @@
     $SopLink = 'https://bexmediastudio.monday.com/docs/18439133662'
     $AppLink = "https://github.com/organizations/$Org/settings/installations"
     $LastPassNote = 'Bexmedia Release Bot'
-    $ReleaseBotAppId = '5694548'   # Bexmedia Release Bot's App ID (not secret)
 
     # Run a command whose error output we don't care about. Windows PowerShell 5.1
     # treats any error output from git or gh as fatal, so switch that off just here.
@@ -249,7 +248,7 @@
         }
     }
 
-    # ---- Step 2A, part D: release app ID and key ----
+    # ---- Step 2A, part D: release key ----
     $script:Stage = 'D'
     if ($UsesWorkflows) {
         Say ''
@@ -276,13 +275,6 @@
             try { Set-Clipboard -Value ' ' } catch { }
             if (-not $KeyOk) { Fail 'Could not save the key into the repo. You may need admin rights on this repo.' }
             Good 'Key saved into the repo, and your clipboard has been cleared'
-
-            $AppId = $ReleaseBotAppId
-            if (-not $AppId) { $AppId = (Read-Host "Now the App ID (a number, in the same LastPass note)").Trim() }
-            if ($AppId -notmatch '^\d+$') { Fail 'The App ID should be a number.' }
-            gh variable set RELEASE_BOT_APP_ID --repo $Full --body $AppId
-            if ($LASTEXITCODE -ne 0) { Fail 'Could not save the App ID into the repo.' }
-            Good 'App ID saved into the repo'
         }
         else {
             try { if ($Key) { Set-Clipboard -Value ' ' } } catch { }
