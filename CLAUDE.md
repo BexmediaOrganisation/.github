@@ -16,6 +16,10 @@ You are working in a BexmediaOrganisation repo. Bexmedia's SOPs on monday.com ar
 | Writing or changing an SOP, or building a skill or tool from one | The SOP lifecycle: https://bexmediastudio.monday.com/docs/18439474792 |
 | Writing or changing a GitHub Actions workflow, or choosing `runs-on` | GitHub self-hosted runners: https://bexmediastudio.monday.com/docs/18438628008 |
 
+## Rules that are easy to miss
+
+- **Dev copies on the Mac mini only run while a change is being checked** (Versioning and releases SOP, Step 1B). Every merge to main rebuilds and starts dev. After checking the change, stop it: `docker compose -p <app>-dev stop`. Start it with `start` when a task needs it. Live always stays running.
+
 ## How to read the SOPs
 
 Use the monday.com connector, if you have it, to read the doc at the link above. Each link ends in the doc's ID.
